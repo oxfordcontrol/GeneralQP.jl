@@ -1,5 +1,6 @@
 include("../src/GeneralQP.jl")
-using Base.GeneralQP
+using Main.GeneralQP
+using Random, Test
 
 rng = MersenneTwister(123)
 n = 100
@@ -8,33 +9,6 @@ idx = 3
 
 A = randn(rng, n, m)
 P = randn(n, n); @. P = (P + P')/2
-H = NullspaceHessian{Float64}(P, A)
-
-remove_constraint!(H, idx)
-A = [A[:, 1:idx-1] A[:, idx+1:m]]
-@testset "Update qr - remove column" begin
-    @test norm(H.QR.Q'*H.QR.Q - I) <= 1e-7
-    @test norm(H.QR.Q1*H.QR.R1 - A) <= 1e-7
-end
-
-@testset "Expand hessian matrix" begin
-    @test norm(H.Z'*P*H.Z - H.ZPZ) <= 1e-7
-end
-
-a = randn(n)
-add_constraint!(H, a)
-A = [A a]
-@testset "Update qr - add column" begin
-    @test norm(H.QR.Q'*H.QR.Q - I) <= 1e-7
-    @test norm(H.QR.Q1*H.QR.R1 - A) <= 1e-7
-end
-
-@testset "Shrink hessian matrix" begin
-    @test norm(H.Z'*P*H.Z - H.ZPZ) <= 1e-7
-end
-
-A = randn(rng, n, m)
-P = randn(n, n); @. P = (P + P')/2; # P = P - 1.05*minimum(eigvals(P))*I
 H = NullspaceHessianLDL{Float64}(P, A)
 # @show eigvals(H.QR.Q2'*P*H.QR.Q2)
 @test norm(H.Z[:,end:-1:1]'*P*H.Z[:,end:-1:1] - H.U'*H.D*H.U) <= 1e-7
