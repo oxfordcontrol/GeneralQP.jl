@@ -12,7 +12,7 @@ subject to  Ax ≤ b
 ```
 given an initial feasible point `x`. 
 
-To avoid further restrictions regarding the initial point, an artificial constraints approach is taken as described in [QPOPT's 1.0 User manual, Section 3.2](https://web.stanford.edu/group/SOL/guides/qpopt.pdf).
+To avoid further restrictions on the initial point, an artificial constraints approach is taken as described in [QPOPT's 1.0 User manual, Section 3.2](https://web.stanford.edu/group/SOL/guides/qpopt.pdf).
 
 ## Installation
 The solver can be installed by running
@@ -52,7 +52,7 @@ add_column!(F::UpdatableQR{T}, idx::Int).
 
 Similarly, [`UpdatableHessianLDL`](https://github.com/oxfordcontrol/GeneralQP.jl/blob/master/src/linear_algebra.jl) provides an updatable LDLt factorization F for the projection of the hessian `P` on the range of the working constraints.
 
-The `struct` `UpdatableHessianLDL` is based on `UpdatableQR` and implements functionality for artificial constraints ([QPOPT 1.0 Manual, Section 3.2](https://web.stanford.edu/group/SOL/guides/qpopt.pdf)).
+`UpdatableHessianLDL` is based on `UpdatableQR` and implements functionality for artificial constraints ([QPOPT 1.0 Manual, Section 3.2](https://web.stanford.edu/group/SOL/guides/qpopt.pdf)).
 
 ### Obtaining a initial feasible point
 
