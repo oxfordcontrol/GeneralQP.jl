@@ -42,12 +42,14 @@ mutable struct Data{T}
     printing_interval::Int
     r_max::Int
 
-    function Data{T}(P, q, A, b, r_max, x) where{T}
+    function Data(P::Matrix{T}, q::Vector{T}, A::Matrix{T}, b::Vector{T},
+        x::Vector{T}; r_max=Inf, verbosity=1) where T
+
         m, n = size(A)
         working_set = findall((A*x - b)[:] .>= -1e-11)
         ignored_set = setdiff(1:m, working_set)
 
-        F = NullspaceHessianLDL{T}(P, Matrix(view(A, working_set, :)'))
+        F = NullspaceHessianLDL(P, Matrix(view(A, working_set, :)'))
         if F.m == 0
             remove_constraint!(F, 0)
         end
@@ -69,8 +71,10 @@ mutable struct Data{T}
     end
 end
 
-function solve(P, q, A, b, r, x)
-    data = Data{Float64}(P, q, A, b, r, x)
+function solve(P::Array{T}, q::Vector{T}, A::Matrix{T}, b::Vector{T},
+    x::Vector{T}; kwargs...) where T
+
+    data = Data(P, q, A, b, kwargs)
 
     if data.verbosity > 0
         print_header(data)

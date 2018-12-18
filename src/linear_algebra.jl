@@ -12,7 +12,7 @@ mutable struct UpdatableQR{T} <: Factorization{T}
     Q2::SubArray{T, 2, Matrix{T}, Tuple{Base.Slice{Base.OneTo{Int}}, UnitRange{Int}}, true}
     R1::UpperTriangular{T, SubArray{T, 2, Matrix{T}, Tuple{UnitRange{Int},UnitRange{Int}}, false}}
 
-    function UpdatableQR{T}(A) where {T}
+    function UpdatableQR(A::AbstractMatrix{T}) where {T}
         n, m = size(A)
         @assert(m <= n, "Too many columns in the matrix.")
 
@@ -27,7 +27,7 @@ mutable struct UpdatableQR{T} <: Factorization{T}
     end
 end
 
-function add_column!(F::UpdatableQR{T}, a::Vector{T}) where {T}
+function add_column!(F::UpdatableQR{T}, a::AbstractVector{T}) where {T}
     a1 = F.Q1'*a;
     a2 = F.Q2'*a;
 
@@ -92,7 +92,7 @@ mutable struct NullspaceHessianLDL{T}
     d::Vector{T}     # That's where D.diag views into
     indefinite_tolerance::T
 
-    function NullspaceHessianLDL{T}(P::Matrix{T}, A::Matrix{T}) where {T}
+    function NullspaceHessianLDL(P::Matrix{T}, A::AbstractMatrix{T}) where {T}
         @assert(size(A, 1) == size(P, 1) == size(P, 2), "Matrix dimensions do not match.")
 
         F = UpdatableQR{T}(A)
@@ -127,7 +127,7 @@ mutable struct NullspaceHessianLDL{T}
 
 end
 
-function add_constraint!(F::NullspaceHessianLDL{T}, a::Vector{T}) where {T}
+function add_constraint!(F::NullspaceHessianLDL{T}, a::AbstractVector{T}) where {T}
     a2 = add_column!(F.QR, a)
     if F.m == 1 # Nothing to write
         F.m -= 1; update_views!(F)
