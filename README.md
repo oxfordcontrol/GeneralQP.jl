@@ -5,31 +5,31 @@ Gill, Philip E., and Walter Murray.
 Numerically stable methods for quadratic programming.
 Mathematical programming 14.1 (1978): 349-372.
 ```
-i.e. an inertia-controlling active set solver for general (definite/indefinite) *dense* quadratic programs
+i.e. an inertia-controlling active-set solver for general (definite/indefinite) *dense* quadratic programs
 ```
 minimize    ½x'Px + q'x
 subject to  Ax ≤ b
 ```
-given an initial feasible point `x`. 
+given an [initial feasible point](#obtaining-a-initial-feasible-point) `x`. 
 
 To avoid further restrictions on the initial point, an artificial constraints approach is taken as described in [QPOPT's 1.0 User manual, Section 3.2](https://web.stanford.edu/group/SOL/guides/qpopt.pdf).
 
 ## Installation
 The solver can be installed by running
 ```
-Pkg.add("https://github.com/oxfordcontrol/TRS.jl")
+Pkg.add("https://github.com/oxfordcontrol/GeneralQP.jl")
 ```
 ## Usage
 The solver can be used by calling the function
 ```
 solve(P, q, A, b, x_init; kwargs) -> x
 ```
-with inputs:
+with inputs (`T` is any real numerical type):
 
-* `P::Matrix{T}` is the quadratic of the cost;
-* `q::Vector{T}` is the linear cost;
-* `A::Matrix{T}` and b::AbstractVector{T} define the constraints; and
-* `x_init` is the initial point
+* `P::Matrix{T}`: the quadratic of the cost;
+* `q::Vector{T}`: the linear cost;
+* `A::Matrix{T}` and `b::AbstractVector{T}`: the constraints; and
+* `x_init::Vector{T}`: the initial point
 
 keywords (optional):
 * `verbosity::Int=1` the verbosity of the solver ranging from `0` (no output) to `2` (most verbose).
@@ -54,7 +54,7 @@ Similarly, [`UpdatableHessianLDL`](https://github.com/oxfordcontrol/GeneralQP.jl
 
 `UpdatableHessianLDL` is based on `UpdatableQR` and implements functionality for artificial constraints ([QPOPT 1.0 Manual, Section 3.2](https://web.stanford.edu/group/SOL/guides/qpopt.pdf)).
 
-### Obtaining a initial feasible point
+## Obtaining an initial feasible point
 
 An initial feasible point can be obtained e.g. by performing `Phase-I` `Simplex` on the polyhedron `Ax ≤ b`:
 ```
