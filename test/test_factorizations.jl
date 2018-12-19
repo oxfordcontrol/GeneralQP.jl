@@ -9,7 +9,7 @@ idx = 3
 
 A = randn(rng, n, m)
 P = randn(n, n); @. P = (P + P')/2
-H = NullspaceHessianLDL{Float64}(P, A)
+H = NullspaceHessianLDL(P, A)
 # @show eigvals(H.QR.Q2'*P*H.QR.Q2)
 @test norm(H.Z[:,end:-1:1]'*P*H.Z[:,end:-1:1] - H.U'*H.D*H.U) <= 1e-7
 

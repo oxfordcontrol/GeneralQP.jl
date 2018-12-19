@@ -40,18 +40,22 @@ mutable struct Data{T}
 
     verbosity::Int
     printing_interval::Int
-    r_max::Int
+    r_max::T
 
     function Data(P::Matrix{T}, q::Vector{T}, A::Matrix{T}, b::Vector{T},
-        x::Vector{T}; r_max=Inf, verbosity=1) where T
+        x::Vector{T}; r_max=Inf, verbosity=1, printing_interval=50) where T
 
         m, n = size(A)
         working_set = findall((A*x - b)[:] .>= -1e-11)
+        if length(working_set) == n
+            deleteat!(working_set, n)
+        end
+        @assert(maximum(A*x - b) < 1e-13, "The initial point is infeasible!")
         ignored_set = setdiff(1:m, working_set)
 
         F = NullspaceHessianLDL(P, Matrix(view(A, working_set, :)'))
-        if F.m == 0
-            remove_constraint!(F, 0)
+        if F.m == 0 # To many artificial constraints...
+            remove_constraint!(data.F, 0)
         end
         A_shuffled = zeros(m, n)
         l = length(ignored_set)
@@ -62,19 +66,19 @@ mutable struct Data{T}
         e = zeros(n);
         λ = zeros(n); λ .= NaN
 
-        new(x, n, m, F, q, A, b, working_set, ignored_set, λ,
+        new{T}(x, n, m, F, q, A, b, working_set, ignored_set, λ,
             NaN, 0, false, e,
             view(A_shuffled, m-l+1:m, :),
             view(b_shuffled, m-l+1:m),
             A_shuffled, b_shuffled,
-            2, 1, r_max)
+            verbosity, printing_interval, r_max)
     end
 end
 
 function solve(P::Array{T}, q::Vector{T}, A::Matrix{T}, b::Vector{T},
     x::Vector{T}; kwargs...) where T
 
-    data = Data(P, q, A, b, kwargs)
+    data = Data(P, q, A, b, x; kwargs...)
 
     if data.verbosity > 0
         print_header(data)
@@ -137,16 +141,20 @@ function calculate_step(data)
     end
 
     α = min(α_min, α_constraint) 
-    α_max = roots(Poly(
-        [norm(data.x)^2 - data.r_max^2,
-        2*dot(direction, data.x),
-        norm(direction)^2]
-        ))
-    if isreal(α_max)        
-        α_max = maximum(α_max)
-    else
-        α_max = Inf
+
+    α_max = Inf
+    if isfinite(data.r_max)
+        alpha = roots(Poly(
+            [norm(data.x)^2 - data.r_max^2,
+            2*dot(direction, data.x),
+            norm(direction)^2]
+            ))
+        if isreal(alpha)     
+            α_max = maximum(alpha)
+        end
     end
+    @assert(isfinite(min(α, α_max)), "The problem is unbounded!
+        Set the keyword argument r_max to a finite value if you want to get bounded solutions.")
 
     return direction, min(α, α_max), new_constraints
 end

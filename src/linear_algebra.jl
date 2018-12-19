@@ -95,7 +95,7 @@ mutable struct NullspaceHessianLDL{T}
     function NullspaceHessianLDL(P::Matrix{T}, A::AbstractMatrix{T}) where {T}
         @assert(size(A, 1) == size(P, 1) == size(P, 2), "Matrix dimensions do not match.")
 
-        F = UpdatableQR{T}(A)
+        F = UpdatableQR(A)
         n = F.n
         m = F.n - F.m
 
@@ -121,6 +121,7 @@ mutable struct NullspaceHessianLDL{T}
         U .= view(C.U, 1:m, 1:m)
         d = ones(n)
         D = Diagonal(view(d, 1:m))
+        @show artificial_constraints
 
         new{T}(n, m, artificial_constraints, P, Z, UpperTriangular(U), D, F, data, d, indefinite_tolerance)
     end
