@@ -18,7 +18,7 @@ mutable struct UpdatableQR{T} <: Factorization{T}
 
         F = qr(A)
         Q = F.Q*Matrix(I, n, n)
-        R = zeros(n, n)
+        R = zeros(T, n, n)
         R[1:m, 1:m] .= F.R
 
         new{T}(Q, R, n, m,
@@ -99,7 +99,7 @@ mutable struct NullspaceHessianLDL{T}
         n = F.n
         m = F.n - F.m
 
-        data = zeros(n, n)
+        data = zeros(T, n, n)
         F.Q2 .= F.Q2[:, m:-1:1]
         WPW = F.Q2'*P*F.Q2; WPW .= (WPW .+ WPW')./2
         indefinite_tolerance = 1e-9
@@ -119,7 +119,7 @@ mutable struct NullspaceHessianLDL{T}
         F.Q2[:, artificial_constraints+1:end].= F.Q2[:, end:-1:artificial_constraints+1]
         Z = view(F.Q2, :, artificial_constraints+1:size(F.Q2, 2))
         U .= view(C.U, 1:m, 1:m)
-        d = ones(n)
+        d = ones(T, n)
         D = Diagonal(view(d, 1:m))
         @show artificial_constraints
 

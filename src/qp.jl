@@ -57,14 +57,14 @@ mutable struct Data{T}
         if F.m == 0 # To many artificial constraints...
             remove_constraint!(data.F, 0)
         end
-        A_shuffled = zeros(m, n)
+        A_shuffled = zeros(T, m, n)
         l = length(ignored_set)
         A_shuffled[end-l+1:end, :] .= view(A, ignored_set, :)
-        b_shuffled = zeros(m)
+        b_shuffled = zeros(T, m)
         b_shuffled[end-l+1:end] .= view(b, ignored_set)
 
-        e = zeros(n);
-        λ = zeros(n); λ .= NaN
+        e = zeros(T, n);
+        λ = zeros(T, n); λ .= NaN
 
         new{T}(x, n, m, F, q, A, b, working_set, ignored_set, λ,
             NaN, 0, false, e,
