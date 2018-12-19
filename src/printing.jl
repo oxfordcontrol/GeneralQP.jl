@@ -1,6 +1,6 @@
 using Printf
 
-function print_header(data)
+function print_header(data::Data)
     if data.verbosity == 1
         @printf("Iter \t  Objective  \t Inf Linear \t Radius \t Gradient res \t D[end, end] \t AC\n")
     elseif data.verbosity == 2
@@ -8,7 +8,7 @@ function print_header(data)
     end
 end
 
-function print_info(data)
+function print_info(data::Data)
     if data.verbosity == 1
         @printf("%d \t  %.5e \t %.5e \t %.5e \t %s \t %.5e \t %d/%d   \n",
             data.iteration,

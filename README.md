@@ -27,7 +27,7 @@ solve(P, q, A, b, x_init; kwargs) -> x
 ```
 with **inputs** (`T` is any real numerical type):
 
-* `P::Matrix{T}`: the quadratic of the cost;
+* `P::Matrix{T}`: the quadratic cost;
 * `q::Vector{T}`: the linear cost;
 * `A::Matrix{T}` and `b::AbstractVector{T}`: the constraints; and
 * `x_init::Vector{T}`: the initial, [feasible](#obtaining-an-initial-feasible-point) point
@@ -36,6 +36,7 @@ with **inputs** (`T` is any real numerical type):
 * `verbosity::Int=1` the verbosity of the solver ranging from `0` (no output)
 to `2` (most verbose). Note that setting `verbosity=2` affects the algorithm's performance.
 * `printing_interval::Int=50`.
+* `r_max::T=Inf` Maximum radius. The algorithm terminates if ‖x‖ ≥ r with a return solution of ‖x‖ = r. This is particularly useful for unbounded problems.
 
 and **output** `x::Vector{T}`, the calculated optimizer.
 

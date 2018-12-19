@@ -12,5 +12,6 @@ include("qp.jl")
 export solve
 export UpdatableQR, NullspaceHessianLDL
 export add_column!, remove_column!
+export iterate!, print_header!, print_info!
 
 end
