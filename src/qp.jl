@@ -75,7 +75,7 @@ mutable struct Data{T}
     end
 end
 
-function solve(P::Array{T}, q::Vector{T}, A::Matrix{T}, b::Vector{T},
+function solve(P::Matrix{T}, q::Vector{T}, A::Matrix{T}, b::Vector{T},
     x::Vector{T}; kwargs...) where T
 
     data = Data(P, q, A, b, x; kwargs...)

@@ -11,6 +11,6 @@ include("printing.jl")
 include("qp.jl")
 export solve
 export UpdatableQR, NullspaceHessianLDL
-export remove_constraint!, add_constraint!
+export add_column!, remove_column!
 
 end
