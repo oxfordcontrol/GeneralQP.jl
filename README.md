@@ -44,9 +44,9 @@ This package includes [`UpdatableQR`](https://github.com/oxfordcontrol/GeneralQP
 ```
 X = F.Q*F.R
 ```
-that allows efficient `O(n^2)` update of the factors when adding/removing rows in the matrix X. This is critical for efficient execution of (dense) active-set algorithms.
+that allows efficient `O(n^2)` update of the factors when adding/removing rows in the matrix `X`. This is critical for efficient execution of (dense) active-set algorithms.
 
-These can be simply performed using
+These updates can be simply performed using
 ```
 add_column!(F::UpdatableQR{T}, a::AbstractVector{T})
 remove_column!(F::UpdatableQR{T}, idx::Int).

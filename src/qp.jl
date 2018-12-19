@@ -31,7 +31,7 @@ mutable struct Data{T}
     iteration::Int
     done::Bool
 
-    e::Vector{T}
+    e::Vector{T} # Just an auxiliary vector used in computing step directions
 
     A_ignored::SubArray{T, 2, Matrix{T}, Tuple{UnitRange{Int}, Base.Slice{Base.OneTo{Int}}}, false}
     b_ignored::SubArray{T, 1, Vector{T}, Tuple{UnitRange{Int}}, true}
@@ -118,6 +118,14 @@ function calculate_step(data)
     gradient = data.F.P*data.x + data.q
     if data.F.D[end] >= data.F.indefinite_tolerance
         qw = data.F.Z'*(gradient)
+        # Gill & Murray (1978) calculate the direction/stepsize as:
+        # direction = data.F.Z*reverse(data.F.U\e)
+        # direction .*= -sign(dot(direction, gradient))
+        # α_min = -dot(gradient, direction)/data.F.D[end]
+        # This assumes that we start from a feasible vertex or a feasible stationary point.
+        # This assumption is suitable e.g. when we use a Phase I algorithm to find a feasible point
+        # and it allows for a faster/simpler calculation of the direction.
+        # Nevertheless, for purposes of generality, we calculate the direction in a more general way.
         direction = -data.F.Z*reverse(data.F.U\(data.F.D\(data.F.U'\reverse(qw))))
         α_min = 1
     else
