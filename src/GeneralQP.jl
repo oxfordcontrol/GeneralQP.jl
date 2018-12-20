@@ -7,11 +7,11 @@ using Polynomials
 
 include("linear_algebra.jl")
 include("change_constraints.jl")
-include("printing.jl")
 include("qp.jl")
+include("printing.jl")
 export solve
-export UpdatableQR, NullspaceHessianLDL
+export UpdatableQR, NullspaceHessianLDL, NullspaceHessian
 export add_column!, remove_column!
-export iterate!, print_header!, print_info!
+export add_constraint!, remove_constraint!
 
 end

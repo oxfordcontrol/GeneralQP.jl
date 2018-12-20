@@ -121,7 +121,6 @@ mutable struct NullspaceHessianLDL{T}
         U .= view(C.U, 1:m, 1:m)
         d = ones(T, n)
         D = Diagonal(view(d, 1:m))
-        @show artificial_constraints
 
         new{T}(n, m, artificial_constraints, P, Z, UpperTriangular(U), D, F, data, d, indefinite_tolerance)
     end
@@ -209,4 +208,76 @@ function hessenberg_to_triangular!(A::AbstractMatrix{T}) where {T}
         lmul!(G, A)
     end
     return A
+end
+
+mutable struct NullspaceHessian{T}
+    n::Int # Dimension of the original space
+    m::Int # Dimension of the nullspace
+
+    P::Matrix{T}     # The full hessian
+    # Z is the nullspace, i.e. QR.Q2 where QR is defined below
+    Z::SubArray{T, 2, Matrix{T}, Tuple{Base.Slice{Base.OneTo{Int}}, UnitRange{Int}}, true}
+    ZPZ::SubArray{T, 2, Matrix{T}, Tuple{UnitRange{Int},UnitRange{Int}}, false}  # equal to Z'*P*Z
+    QR::UpdatableQR{T}
+    data::Matrix{T}  # That's where ZPZ is viewing into
+
+    function NullspaceHessian{T}(P::Matrix{T}, A::Matrix{T}) where {T}
+        @assert(size(A, 1) == size(P, 1) == size(P, 2), "Matrix dimensions do not match.")
+
+        F = UpdatableQR(A)
+        n = F.n
+        m = F.n - F.m
+
+        data = zeros(T, n, n)
+        ZPZ = view(data, n-m+1:n, n-m+1:n) 
+        ZPZ .= F.Q2'*P*F.Q2; ZPZ .= (ZPZ .+ ZPZ')./2
+
+        new{T}(n, m, P, F.Q2, ZPZ, F, data)
+    end
+
+    function NullspaceHessian{T}(P::Matrix{T}, F::UpdatableQR{T}) where {T}
+        n = F.n
+        m = F.n - F.m
+        @assert(n == size(P, 1) == size(P,2), "Dimensions do not match.")
+
+        data = zeros(T, n, n)
+        ZPZ = view(data, n-m+1:n, n-m+1:n) 
+        ZPZ .= F.Q2'*P*F.Q2; ZPZ .= (ZPZ .+ ZPZ')./2
+
+        new{T}(n, m, P, F.Q2, ZPZ, F, data)
+    end
+end
+
+function add_constraint!(H::NullspaceHessian{T}, a::Vector{T}) where {T}
+    a2 = add_column!(H.QR, a)
+
+    for i = length(a2):-1:2
+        G, r = givens(a2[i-1], a2[i], i-1, i)
+        lmul!(G, a2)
+        rmul!(H.ZPZ, G')
+        lmul!(G, H.ZPZ)
+    end
+    # ToDo: Force symmetry? (i.e. H.ZPZ .= (H.ZPZ .+ H.ZPZ')./2)
+    H.m -= 1; update_views!(H)
+
+    return nothing
+end
+
+function remove_constraint!(H::NullspaceHessian{T}, idx::Int) where{T}
+    remove_column!(H.QR, idx)
+    H.m += 1; update_views!(H)
+
+    Pz = H.P*view(H.Z, :, 1)  # ToDo: avoid memory allocation
+    mul!(view(H.ZPZ, 1, :), H.Z', Pz)
+    for i = 2:H.m
+        H.ZPZ[i, 1] = H.ZPZ[1, i]
+    end
+    
+    return nothing
+end
+
+function update_views!(H::NullspaceHessian{T}) where {T}
+    range = H.n-H.m+1:H.n
+    H.ZPZ = view(H.data, range, range)
+    H.Z = H.QR.Q2
 end
