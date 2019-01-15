@@ -16,7 +16,7 @@ function print_info(data::Data)
             max(maximum(data.A*data.x - data.b), 0),
             norm(data.x),
             isnan(data.residual) ? string(@sprintf("%.5e", data.residual), "   ") : @sprintf("%.5e", data.residual),
-            data.F.D[end],
+            length(data.F.D) > 0 ? data.F.D[end] : NaN,
             length(data.working_set),
             data.F.artificial_constraints
         )
@@ -27,7 +27,7 @@ function print_info(data::Data)
             max(maximum(data.A*data.x - data.b), 0),
             norm(data.x),
             isnan(data.residual) ? string(@sprintf("%.5e", data.residual), "   ") : @sprintf("%.5e", data.residual),
-            data.F.D[end],
+            length(data.F.D) > 0 ? data.F.D[end] : NaN,
             length(data.working_set),
             data.F.artificial_constraints,
             norm(data.F.U'*data.F.D*data.F.U - data.F.Z'*data.F.P*data.F.Z),

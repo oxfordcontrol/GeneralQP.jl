@@ -46,16 +46,13 @@ mutable struct Data{T}
         x::Vector{T}; r_max=Inf, verbosity=1, printing_interval=50) where T
 
         m, n = size(A)
-        working_set = findall((A*x - b)[:] .>= -1e-11)
-        if length(working_set) == n
-            deleteat!(working_set, n)
-        end
-        @assert(maximum(A*x - b) < 1e-13, "The initial point is infeasible!")
+        working_set = zeros(Int, 0)
+        @assert(maximum(A*x - b) < 1e-10, "The initial point is infeasible!")
         ignored_set = setdiff(1:m, working_set)
 
         F = NullspaceHessianLDL(P, Matrix(view(A, working_set, :)'))
         if F.m == 0 # To many artificial constraints...
-            remove_constraint!(data.F, 0)
+            remove_constraint!(F, 0)
         end
         A_shuffled = zeros(T, m, n)
         l = length(ignored_set)
@@ -85,14 +82,16 @@ function solve(P::Matrix{T}, q::Vector{T}, A::Matrix{T}, b::Vector{T},
         print_info(data)
     end
 
-    while !data.done && data.iteration <= Inf
+    while !data.done && data.iteration <= Inf && norm(data.x) <= data.r_max - 1e-10
         iterate!(data)
 
         if data.verbosity > 0
             mod(data.iteration, 10*data.printing_interval) == 0 && print_header(data)
-            (mod(data.iteration, data.printing_interval) == 0 || data.done) && print_info(data)
+            mod(data.iteration, data.printing_interval) == 0 && print_info(data)
         end
     end
+    data.verbosity > 0 && print_info(data)
+
     return x
 end
 
@@ -118,6 +117,9 @@ function calculate_step(data)
     gradient = data.F.P*data.x + data.q
     if data.F.D[end] >= data.F.indefinite_tolerance
         qw = data.F.Z'*(gradient)
+        if norm(qw) <= 1e-10 # We are alread on the optimizer of the current subproblem
+            return zeros(data.n), 0, []
+        end
         # Gill & Murray (1978) calculate the direction/stepsize as:
         # direction = data.F.Z*reverse(data.F.U\e)
         # direction .*= -sign(dot(direction, gradient))
@@ -131,7 +133,9 @@ function calculate_step(data)
     else
         e = view(data.e, 1:data.F.m); e[end] = 1
         direction = data.F.Z*reverse(data.F.U\e)
-        direction .*= -sign(dot(direction, gradient))
+        if dot(direction, gradient) >= 0
+            direction .= -direction
+        end
         e .= 0
         α_min = Inf
     end
@@ -149,6 +153,10 @@ function calculate_step(data)
     end
 
     α = min(α_min, α_constraint) 
+    if α == Inf 
+        # variable "direction" holds the unbounded ray
+        @info "The problem is unbounded (unbounded ray detected)."
+    end
 
     α_max = Inf
     if isfinite(data.r_max)
@@ -157,14 +165,14 @@ function calculate_step(data)
             2*dot(direction, data.x),
             norm(direction)^2]
             ))
-        if isreal(alpha)     
+        if isreal(alpha)
             α_max = maximum(alpha)
         end
     end
-    @assert(isfinite(min(α, α_max)), "The problem is unbounded!
-        Set the keyword argument r_max to a finite value if you want to get bounded solutions.")
+    stepsize = min(α, α_max)
+    @assert(isfinite(stepsize), "Set the keyword argument r_max to a finite value if you want to get bounded solutions.")
 
-    return direction, min(α, α_max), new_constraints
+    return direction, stepsize, new_constraints
 end
 
 function check_kkt!(data)

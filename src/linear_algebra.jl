@@ -259,6 +259,7 @@ function add_constraint!(H::NullspaceHessian{T}, a::Vector{T}) where {T}
     end
     # ToDo: Force symmetry? (i.e. H.ZPZ .= (H.ZPZ .+ H.ZPZ')./2)
     H.m -= 1; update_views!(H)
+    H.ZPZ .= (H.ZPZ .+ H.ZPZ')./2
 
     return nothing
 end
