@@ -102,7 +102,7 @@ mutable struct NullspaceHessianLDL{T}
         data = zeros(T, n, n)
         F.Q2 .= F.Q2[:, m:-1:1]
         WPW = F.Q2'*P*F.Q2; WPW .= (WPW .+ WPW')./2
-        indefinite_tolerance = 1e-9
+        indefinite_tolerance = 1e-12
 
         C = cholesky(WPW, Val(true); check=false)
         if all(diag(C.U) .> indefinite_tolerance)
@@ -157,7 +157,8 @@ function add_constraint!(F::NullspaceHessianLDL{T}, a::AbstractVector{T}) where 
     # Correct last element of U
     u1 = view(F.U, 1:F.m-1, F.m)
     d_new = dot(z, F.P*z) - dot(u1, u1)
-    F.U[end] = sqrt(abs(d_new))
+    # Prevent F.U having zero columns
+    F.U[end] = max(sqrt(abs(d_new)), F.indefinite_tolerance)
 
     # Scale matrices so that diag(F.U) = ones(..) 
     F.D.diag .= one(T) 
