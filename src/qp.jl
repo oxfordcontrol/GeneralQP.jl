@@ -73,7 +73,7 @@ mutable struct Data{T}
 end
 
 function solve(P::Matrix{T}, q::Vector{T}, A::Matrix{T}, b::Vector{T},
-    x::Vector{T}; kwargs...) where T
+    x::Vector{T}; max_iter=Inf, kwargs...) where T
 
     data = Data(P, q, A, b, x; kwargs...)
 
@@ -82,7 +82,7 @@ function solve(P::Matrix{T}, q::Vector{T}, A::Matrix{T}, b::Vector{T},
         print_info(data)
     end
 
-    while !data.done && data.iteration <= Inf && norm(data.x) <= data.r_max - 1e-10
+    while !data.done && data.iteration <= max_iter && norm(data.x) <= data.r_max - 1e-10
         iterate!(data)
 
         if data.verbosity > 0
@@ -102,7 +102,8 @@ function iterate!(data::Data{T}) where{T}
     if !isempty(new_constraints)
         add_constraint!(data, new_constraints[1])
     end
-    if isempty(new_constraints) || data.F.m == 0
+    #ToDo: break next condition into simpler ones or a more representative flag
+    if (isempty(new_constraints) || data.F.m == 0) && norm(data.x) <= data.r_max - 1e-10
         if data.F.artificial_constraints > 0
             remove_constraint!(data.F, 0)
         else
@@ -132,6 +133,11 @@ function calculate_step(data)
         α_min = 1
     else
         e = view(data.e, 1:data.F.m); e[end] = 1
+        #=
+        if norm(data.F.U[:, end]) <= 1e-11
+            data.F.U[end] = 1e-11
+        end
+        =#
         direction = data.F.Z*reverse(data.F.U\e)
         if dot(direction, gradient) >= 0
             direction .= -direction
@@ -140,13 +146,15 @@ function calculate_step(data)
         α_min = Inf
     end
 
-    ratios = abs.(data.b_ignored - data.A_ignored*data.x)./(data.A_ignored*direction)
-    ratios[data.A_ignored*direction .<= 0] .= Inf
+    Α_times_direction = data.A_ignored*direction
+    ratios = abs.(data.b_ignored - data.A_ignored*data.x)./(Α_times_direction)
+    ratios[Α_times_direction .<= 1e-11] .= Inf
 
-    idx = argmin(ratios)
-    α_constraint = ratios[idx]
+    α_constraint = minimum(ratios)
+    idx = findlast(ratios .== α_constraint)
+    # @show α_constraint, data.ignored_set[idx]
 
-    if α_constraint <= α_min
+    if α_constraint <= α_min && isfinite(α_constraint)
         new_constraints = [idx]
     else
         new_constraints = []
@@ -155,7 +163,7 @@ function calculate_step(data)
     α = min(α_min, α_constraint) 
     if α == Inf 
         # variable "direction" holds the unbounded ray
-        @info "The problem is unbounded (unbounded ray detected)."
+        @info "GeneralQP.jl has detected the problem to be unbounded (unbounded ray found)."
     end
 
     α_max = Inf
