@@ -46,6 +46,19 @@ function add_column!(F::UpdatableQR{T}, a::AbstractVector{T}) where {T}
     return a2
 end
 
+function add_column_householder!(F::UpdatableQR{T}, a::AbstractVector{T}) where {T}
+    a1 = F.Q1'*a;
+    a2 = F.Q2'*a;
+
+    Z = qr(a2)
+    LAPACK.gemqrt!('R','N', Z.factors, Z.T, F.Q2) # Q2 .= Q2*F.Q
+    F.R[1:F.m, F.m+1] .= a1
+    F.R[F.m+1, F.m+1] = Z.factors[1, 1]
+    F.m += 1; update_views!(F)
+
+    return Z
+end
+
 function remove_column!(F::UpdatableQR{T}, idx::Int) where {T}
     Q12 = view(F.Q, :, idx:F.m)
     R12 = view(F.R, idx:F.m, idx+1:F.m)
@@ -250,17 +263,13 @@ mutable struct NullspaceHessian{T}
 end
 
 function add_constraint!(H::NullspaceHessian{T}, a::Vector{T}) where {T}
-    a2 = add_column!(H.QR, a)
+    Z = add_column_householder!(H.QR, a)
 
-    for i = length(a2):-1:2
-        G, r = givens(a2[i-1], a2[i], i-1, i)
-        lmul!(G, a2)
-        rmul!(H.ZPZ, G')
-        lmul!(G, H.ZPZ)
-    end
+    LAPACK.gemqrt!('L','T',Z.factors,Z.T,H.ZPZ)
+    LAPACK.gemqrt!('R','N',Z.factors,Z.T,H.ZPZ)
     # ToDo: Force symmetry? (i.e. H.ZPZ .= (H.ZPZ .+ H.ZPZ')./2)
     H.m -= 1; update_views!(H)
-    H.ZPZ .= (H.ZPZ .+ H.ZPZ')./2
+    # H.ZPZ .= (H.ZPZ .+ H.ZPZ')./2
 
     return nothing
 end
