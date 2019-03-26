@@ -47,7 +47,7 @@ mutable struct Data{T}
 
         m, n = size(A)
         working_set = zeros(Int, 0)
-        @assert(maximum(A*x - b) < 1e-10, "The initial point is infeasible!")
+        @assert(maximum(A*x - b) < 1e-9, "The initial point is infeasible!")
         ignored_set = setdiff(1:m, working_set)
 
         F = NullspaceHessianLDL(P, Matrix(view(A, working_set, :)'))
@@ -61,7 +61,7 @@ mutable struct Data{T}
         b_shuffled[end-l+1:end] .= view(b, ignored_set)
 
         e = zeros(T, n);
-        λ = zeros(T, n); λ .= NaN
+        λ = zeros(T, m);
 
         new{T}(x, n, m, F, q, A, b, working_set, ignored_set, λ,
             NaN, 0, false, e,
@@ -154,12 +154,6 @@ function calculate_step(data)
     idx = findlast(ratios .== α_constraint)
     # @show α_constraint, data.ignored_set[idx]
 
-    if α_constraint <= α_min && isfinite(α_constraint)
-        new_constraints = [idx]
-    else
-        new_constraints = []
-    end
-
     α = min(α_min, α_constraint) 
     if α == Inf 
         # variable "direction" holds the unbounded ray
@@ -179,6 +173,11 @@ function calculate_step(data)
     end
     stepsize = min(α, α_max)
     @assert(isfinite(stepsize), "Set the keyword argument r_max to a finite value if you want to get bounded solutions.")
+    if α_constraint == stepsize
+        new_constraints = [idx]
+    else
+        new_constraints = []
+    end
 
     return direction, stepsize, new_constraints
 end
@@ -186,7 +185,7 @@ end
 function check_kkt!(data)
     grad = data.F.P*data.x + data.q
     λ = -data.F.QR.R1\data.F.QR.Q1'*grad
-    data.λ[1:length(λ)] .= λ
+    data.λ[data.working_set] .= λ
     data.residual = norm(data.F.Z'*grad)
     # data.residual = norm(grad + data.A[data.working_set, :]'*λ)
 
