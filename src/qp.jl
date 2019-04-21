@@ -73,7 +73,7 @@ mutable struct Data{T}
 end
 
 function solve(P::Matrix{T}, q::Vector{T}, A::Matrix{T}, b::Vector{T},
-    x::Vector{T}; max_iter=Inf, kwargs...) where T
+    x::Vector{T}; max_iter::Int=5000, kwargs...) where T
 
     data = Data(P, q, A, b, x; kwargs...)
 
@@ -185,12 +185,13 @@ end
 function check_kkt!(data)
     grad = data.F.P*data.x + data.q
     λ = -data.F.QR.R1\data.F.QR.Q1'*grad
+    data.λ .= 0.0
     data.λ[data.working_set] .= λ
     data.residual = norm(data.F.Z'*grad)
     # data.residual = norm(grad + data.A[data.working_set, :]'*λ)
 
     idx = NaN
-    if all(λ .>= 0)
+    if all(λ .>= -1e-8)
         data.done = true
     else
         data.done = false

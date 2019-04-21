@@ -33,6 +33,7 @@ with **inputs** (`T` is any real numerical type):
 * `x_init::Vector{T}`: the initial, [feasible](#obtaining-an-initial-feasible-point) point
 
 **keywords** (optional):
+* `max_iter::Int=5000` Maximum number of iterations.
 * `verbosity::Int=1` the verbosity of the solver ranging from `0` (no output)
 to `2` (most verbose). Note that setting `verbosity=2` affects the algorithm's performance.
 * `printing_interval::Int=50`.
@@ -53,7 +54,7 @@ add_column!(F::UpdatableQR{T}, a::AbstractVector{T})
 remove_column!(F::UpdatableQR{T}, idx::Int).
 ```
 
-Similarly, [`UpdatableHessianLDL`](https://github.com/oxfordcontrol/GeneralQP.jl/blob/master/src/linear_algebra.jl) provides an updatable LDLt factorization F for the projection of the hessian `P` on the nullspace of the working constraints.
+Similarly, [`UpdatableHessianLDL`](https://github.com/oxfordcontrol/GeneralQP.jl/blob/master/src/linear_algebra.jl) provides an updatable `LDLt` factorization for the projection of the hessian `P` on the nullspace of the working constraints.
 
 `UpdatableHessianLDL` is based on `UpdatableQR` and implements functionality for artificial constraints ([QPOPT 1.0 Manual, Section 3.2](https://web.stanford.edu/group/SOL/guides/qpopt.pdf)).
 
