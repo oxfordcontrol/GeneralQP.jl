@@ -40,14 +40,19 @@ mutable struct Data{T}
 
     verbosity::Int
     printing_interval::Int
+    r_min::T
     r_max::T
 
     function Data(P::Matrix{T}, q::Vector{T}, A::Matrix{T}, b::Vector{T},
-        x::Vector{T}; r_max=Inf, verbosity=1, printing_interval=50) where T
+        x::Vector{T}; r_min::T=zero(T), r_max::T=Inf, verbosity=1, printing_interval=50) where T
+        if r_min < 1e-9; r_min = -one(T); end
 
         m, n = size(A)
         working_set = zeros(Int, 0)
         @assert(maximum(A*x - b) < 1e-9, "The initial point is infeasible!")
+        @assert(norm(x) - r_min > -1e-9, "The initial point is infeasible!")
+        @assert(norm(x) - r_max < 1e-9, "The initial point is infeasible!")
+
         ignored_set = setdiff(1:m, working_set)
 
         F = NullspaceHessianLDL(P, Matrix(view(A, working_set, :)'))
@@ -68,7 +73,8 @@ mutable struct Data{T}
             view(A_shuffled, m-l+1:m, :),
             view(b_shuffled, m-l+1:m),
             A_shuffled, b_shuffled,
-            verbosity, printing_interval, r_max)
+            verbosity, printing_interval,
+            r_min, r_max)
     end
 end
 
@@ -82,7 +88,7 @@ function solve(P::Matrix{T}, q::Vector{T}, A::Matrix{T}, b::Vector{T},
         print_info(data)
     end
 
-    while !data.done && data.iteration <= max_iter && norm(data.x) <= data.r_max - 1e-10
+    while !data.done && data.iteration <= max_iter && norm(data.x) <= data.r_max - 1e-10 && norm(data.x) >= data.r_min + 1e-10
         iterate!(data)
 
         if data.verbosity > 0
@@ -162,13 +168,19 @@ function calculate_step(data)
 
     α_max = Inf
     if isfinite(data.r_max)
-        alpha = roots(Poly(
-            [norm(data.x)^2 - data.r_max^2,
-            2*dot(direction, data.x),
-            norm(direction)^2]
-            ))
-        if isreal(alpha)
-            α_max = maximum(alpha)
+        # Calculate the maximum allowable step α_max so that r_min ≤ norm(x) ≤ r_max
+        roots_rmax = roots(Poly([norm(data.x)^2 - data.r_max^2, 2*dot(direction, data.x), norm(direction)^2]))
+        if data.r_min > 0
+            roots_rmin = roots(Poly([norm(data.x)^2 - data.r_min^2, 2*dot(direction, data.x), norm(direction)^2]))
+            roots_all = [roots_rmin; roots_rmax]
+        else
+            roots_all = roots_rmax
+        end
+        # Discard complex and negative steps
+        roots_all = real.(roots_all[isreal.(roots_all)])
+        roots_all = roots_all[roots_all .>= 0]
+        if length(roots_all) > 0
+            α_max = maximum(roots_all)
         end
     end
     stepsize = min(α, α_max)
