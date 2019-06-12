@@ -180,7 +180,7 @@ function calculate_step(data)
         roots_all = real.(roots_all[isreal.(roots_all)])
         roots_all = roots_all[roots_all .>= 0]
         if length(roots_all) > 0
-            α_max = maximum(roots_all)
+            α_max = minimum(roots_all)
         end
     end
     stepsize = min(α, α_max)
